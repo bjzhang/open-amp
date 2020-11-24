@@ -1,14 +1,5 @@
-/*
- * Copyright (c) 2016 Xilinx, Inc. All rights reserved.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
-/* This file populates resource table for BM remote
- * for use by the Linux Master */
-
-#ifndef PLATFORM_INFO_H
-#define PLATFORM_INFO_H
+#ifndef PLATFORM_INFO_H_
+#define PLATFORM_INFO_H_
 
 #include <openamp/remoteproc.h>
 #include <openamp/virtio.h>
@@ -18,29 +9,42 @@
 extern "C" {
 #endif
 
-struct remoteproc_priv {
-	const char *ipi_name; /**< IPI device name */
-	const char *ipi_bus_name; /**< IPI bus name */
-	const char *rsc_name; /**< rsc device name */
-	const char *rsc_bus_name; /**< rsc bus name */
-	const char *shm_name; /**< shared memory device name */
-	const char *shm_bus_name; /**< shared memory bus name */
-	struct metal_device *ipi_dev; /**< pointer to IPI device */
-	struct metal_io_region *ipi_io; /**< pointer to IPI i/o region */
-	struct metal_device *shm_dev; /**< pointer to shared memory device */
-	struct metal_io_region *shm_io; /**< pointer to sh mem i/o region */
+#define PRINT printf
 
-	struct remoteproc_mem shm_mem; /**< shared memory */
-	unsigned int ipi_chn_mask; /**< IPI channel mask */
-	atomic_int ipi_nokick;
+/* memory attributes */
+
+/* Interrupt vectors */
+
+/* POLL device */
 #ifdef RPMSG_NO_IPI
-	const char *shm_poll_name; /**< shared memory device name */
-	const char *shm_poll_bus_name; /**< shared memory bus name */
-	struct metal_device *shm_poll_dev; /**< pointer to poll mem device */
-	struct metal_io_region *shm_poll_io; /**< pointer to poll mem i/o */
+#undef POLL_BASE_ADDR
+//qemu virt_memmap hw/riscv/virt.c
+//[VIRT_SHM_IPI] =     { 0x90000000,    0x00080000 },
+#define POLL_BASE_ADDR 0x90000000UL
+#define POLL_STOP 0x1U
 #endif /* RPMSG_NO_IPI */
 
+//TODO: move to common
+#define SHM_BASE            0x90100000UL
+
+#define RSC_MEM_PA          SHM_BASE
+#define RSC_MEM_SIZE        0x00020000UL
+//shared buffer: 0x90120000--0x90160000
+#define SHARED_BUF_PA       (SHM_BASE + RSC_MEM_SIZE)
+#define SHARED_BUF_SIZE     0x00040000UL
+//TODO: move to common end
+
+struct remoteproc_priv {
+	const char *poll_dev_name;
+	const char *poll_dev_bus_name;
+	struct metal_device *poll_dev;
+	struct metal_io_region *poll_io;
+#ifndef RPMSG_NO_IPI
+	unsigned int ipi_chn_mask; /**< IPI channel mask */
+	atomic_int ipi_nokick;
+#endif /* !RPMSG_NO_IPI */
 };
+
 /**
  * platform_init - initialize the platform
  *
@@ -102,4 +106,4 @@ void platform_cleanup(void *platform);
 }
 #endif
 
-#endif /* PLATFORM_INFO_H */
+#endif /* PLATFORM_INFO_H_ */

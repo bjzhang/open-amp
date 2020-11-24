@@ -186,6 +186,7 @@ int remoteproc_remove(struct remoteproc *rproc)
 		else
 			ret = -RPROC_EAGAIN;
 		metal_mutex_release(&rproc->lock);
+		metal_mutex_deinit(&rproc->lock);
 	} else {
 		ret = -RPROC_EINVAL;
 	}

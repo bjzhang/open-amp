@@ -7,8 +7,8 @@
 /* This file populates resource table for BM remote
  * for use by the Linux Master */
 
-#ifndef PLATFORM_INFO_H
-#define PLATFORM_INFO_H
+#ifndef PLATFORM_INFO_H_
+#define PLATFORM_INFO_H_
 
 #include <openamp/remoteproc.h>
 #include <openamp/virtio.h>
@@ -17,6 +17,40 @@
 #if defined __cplusplus
 extern "C" {
 #endif
+
+#define RPMSG_NO_IPI
+#define RPU_CPU_ID          0 /* RPU remote CPU Index. We only talk to
+                               * one CPU in the exmaple. We set the CPU
+                               * index to 0. */
+//#define IPI_CHN_BITMASK     0x08 /* IPI channel bit mask for IPI
+//					* from/to RPU0 */
+//#define IPI_DEV_NAME        "ff360000.ipi" /* IPI device name */
+#define DEV_BUS_NAME        "platform" /* device bus name. "platform" bus
+                                        * is used in Linux kernel for generic
+					* devices */
+/* libmetal devices names used in the examples.
+ * They are platform devices, you find them in Linux sysfs
+ * sys/bus/platform/devices */
+#define SHM_DEV_NAME        "90100000.shm" /* shared device name */
+//TODO: move to common
+#define SHM_BASE            0x90100000UL
+
+#define RSC_MEM_PA          SHM_BASE
+#define RSC_MEM_SIZE        0x00020000UL
+//shared buffer: 0x90120000--0x90160000
+#define SHARED_BUF_PA       (SHM_BASE + RSC_MEM_SIZE)
+#define SHARED_BUF_SIZE     0x00040000UL
+//TODO: move to common end
+#define RING_SIZE	    0x00004000UL
+//start: 0x90160000
+#define RING_TX             (SHARED_BUF_PA + SHARED_BUF_SIZE)
+//start: 0x90164000
+#define RING_RX             (RING_TX + RING_SIZE)
+
+#ifdef RPMSG_NO_IPI
+#define POLL_DEV_NAME        "90000000.shm" /* shared device name */
+#define POLL_STOP 0x1U
+#endif /* RPMSG_NO_IPI */
 
 struct remoteproc_priv {
 	const char *ipi_name; /**< IPI device name */
@@ -41,6 +75,8 @@ struct remoteproc_priv {
 #endif /* RPMSG_NO_IPI */
 
 };
+
+
 /**
  * platform_init - initialize the platform
  *
@@ -102,4 +138,5 @@ void platform_cleanup(void *platform);
 }
 #endif
 
-#endif /* PLATFORM_INFO_H */
+#endif /* PLATFORM_INFO_H_ */
+

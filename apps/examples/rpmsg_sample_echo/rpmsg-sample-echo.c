@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <openamp/open_amp.h>
 #include <metal/alloc.h>
+#include <metal/config.h>
 #include "platform_info.h"
 
 #define LPRINTF(format, ...) printf(format, ##__VA_ARGS__)
@@ -24,6 +25,7 @@
 
 static struct rpmsg_endpoint lept;
 static int shutdown_req = 0;
+static uint32_t count = 0;
 
 /*-----------------------------------------------------------------------------*
  *  RPMSG endpoint callbacks
@@ -33,7 +35,6 @@ static int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept, void *data, size_t len,
 {
 	(void)priv;
 	(void)src;
-	static uint32_t count = 0;
 	char payload[RPMSG_BUFFER_SIZE];
 
 	/* Send data back MSG_LIMIT time to master */
@@ -48,6 +49,7 @@ static int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept, void *data, size_t len,
 		}
 
 		if (count == MSG_LIMIT) {
+			LPRINTF("reach message limit, exit\r\n");
 			goto destroy_ept;
 		}
 	}
@@ -99,13 +101,36 @@ int app(struct rpmsg_device *rdev, void *priv)
 /*-----------------------------------------------------------------------------*
  *  Application entry point
  *-----------------------------------------------------------------------------*/
+#ifdef METAL_SYSTEM_RTTHREAD
+static int rpmsg_sample_echo(int argc, char *argv[]);
+
+int rpmsg_echo()
+{
+       rpmsg_sample_echo(1, NULL);
+}
+#ifdef RT_USING_FINSH
+FINSH_FUNCTION_EXPORT(rpmsg_echo, rpmsg echo);
+#endif /* #ifdef RT_USING_FINSH */
+#ifdef FINSH_USING_MSH
+MSH_CMD_EXPORT(rpmsg_echo, rpmsg echo);
+#endif /* #ifdef FINSH_USING_MSH */
+
+static int rpmsg_sample_echo(int argc, char *argv[])
+#else
 int main(int argc, char *argv[])
+#endif /* #ifdef METAL_SYSTEM_RTTHREAD */
 {
 	void *platform;
 	struct rpmsg_device *rpdev;
 	int ret;
 
 	LPRINTF("Starting application...\r\n");
+#ifdef METAL_SYSTEM_RTTHREAD
+	//Make rt-thread happy
+	shutdown_req = 0;
+	count = 0;
+	memset(&lept, 0, sizeof(lept));
+#endif /* #ifdef FINSH_USING_MSH */
 
 	/* Initialize platform */
 	ret = platform_init(argc, argv, &platform);

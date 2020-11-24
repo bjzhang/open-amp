@@ -8,8 +8,13 @@
 #include <platform_info.h>
 #include <common.h>
 
+#ifdef WITH_ZYNQMP
 extern struct remoteproc_ops zynqmp_apu_rproc_ops;
 extern struct remoteproc_ops zynqmp_rpu_rproc_ops;
+#endif /* #ifdef WITH_ZYNQMP */
+#ifdef WITH_RV64
+extern struct remoteproc_ops virt_rv64_rproc_ops;
+#endif /* #ifdef WITH_RV64 */
 
 static struct remoteproc rproc_inst;
 static struct  remoteproc_ops ops;
@@ -17,12 +22,17 @@ static struct  remoteproc_ops ops;
 static struct remoteproc * platform_create_proc(unsigned int cpu_id)
 {
 	struct remoteproc * rproc;
+
+#ifdef WITH_RV64
+	ops = virt_rv64_rproc_ops;
+#elif defined(WITH_ZYNQMP)
 	if (NODE_RPU_0 <= LOAD_FW_TARGET && LOAD_FW_TARGET <= NODE_RPU_1)
 		ops = zynqmp_rpu_rproc_ops;
 	else if (NODE_APU_0 <= LOAD_FW_TARGET && LOAD_FW_TARGET <= NODE_APU_1)
 		ops = zynqmp_apu_rproc_ops;
-	else
-		return NULL;
+#else
+	return NULL;
+#endif /* #ifdef WITH_ZYNQMP */
 
 	rproc = remoteproc_init(&rproc_inst, &ops, &cpu_id);
 	if (!rproc)
@@ -53,9 +63,10 @@ static void app_log_handler(enum metal_log_level level,
 	if (level <= METAL_LOG_EMERGENCY || level > METAL_LOG_DEBUG)
 		level = METAL_LOG_EMERGENCY;
 
-	xil_printf("%s%s", level_strs[level], msg);
+	LPRINTF("%s%s", level_strs[level], msg);
 }
 
+#ifdef WITH_ZYNQMP
 static XIpiPsu IpiInst;
 
 static XStatus IpiConfigure(XIpiPsu *const IpiInstPtr)
@@ -80,6 +91,7 @@ static XStatus IpiConfigure(XIpiPsu *const IpiInstPtr)
     }
     return Status;
 }
+#endif /* #ifdef WITH_ZYNQMP */
 
 struct remoteproc * app_init(unsigned int cpu_id){
 	struct metal_init_params metal_param = {
@@ -88,6 +100,7 @@ struct remoteproc * app_init(unsigned int cpu_id){
 	};
 	metal_init(&metal_param);
 
+#ifdef WITH_ZYNQMP
 	if (XST_SUCCESS != IpiConfigure(&IpiInst)) {
 		LPERROR("Failed to config IPI instance\r\n");
 		return NULL;
@@ -97,7 +110,7 @@ struct remoteproc * app_init(unsigned int cpu_id){
 		LPERROR("Failed to initialize PM\r\n");
 		return NULL;
 	}
-
+#endif /* #ifdef WITH_ZYNQMP */
 
 	return platform_create_proc(cpu_id);
 }
