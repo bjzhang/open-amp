@@ -44,9 +44,9 @@ if (WITH_APPS)
 endif (WITH_APPS)
 
 # LOAD_FW only allowed for R5, otherwise turn off
-if (NOT ${MACHINE} STREQUAL "zynqmp_r5")
+if (NOT (${MACHINE} STREQUAL "zynqmp_r5" OR ${MACHINE} STREQUAL "rv64_virt"))
  set (WITH_LOAD_FW OFF)
-endif(NOT ${MACHINE} STREQUAL "zynqmp_r5")
+endif(NOT (${MACHINE} STREQUAL "zynqmp_r5" OR ${MACHINE} STREQUAL "rv64_virt"))
 
 option (WITH_VIRTIO_MASTER "Build with virtio master enabled" ON)
 option (WITH_VIRTIO_SLAVE "Build with virtio slave enabled" ON)

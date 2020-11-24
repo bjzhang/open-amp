@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef WITH_ZYNQMP
 /* Xilinx headers */
 #include <pm_api_sys.h>
 #include <xil_mpu.h>
@@ -92,7 +93,7 @@ enum XPmRequestAck {
     REQUEST_ACK_CB_CERROR,
 };
 
-#else /* zynqmp */
+#elif zynqmp
 #include <pm_defs.h>
 #define XPM_MAX_QOS            MAX_QOS
 #define XPM_MIN_QOS            (0)
@@ -100,11 +101,23 @@ enum XPmRequestAck {
 
 #define LPRINTF(format, ...) xil_printf(format, ##__VA_ARGS__)
 //#define LPRINTF(format, ...)
-#define LPERROR(format, ...) LPRINTF("ERROR: " format, ##__VA_ARGS__)
+
+#endif /* #ifdef WITH_ZYNQMP */
+
+#ifdef WITH_RV64
+
+#define RV_NODE_APU_0			(0)
+#define RV_NODE_APU_N			(1)
+
+#define LPRINTF(format, ...) printf(format, ##__VA_ARGS__)
+//#define LPRINTF(format, ...)
+
+#endif /* #ifdef WITH_RV64 */
 
 struct rproc_priv {
     struct remoteproc *rproc;
     int cpu_id;
 };
+#define LPERROR(format, ...) LPRINTF("ERROR: " format, ##__VA_ARGS__)
 
 #endif /* COMMON_H_ */

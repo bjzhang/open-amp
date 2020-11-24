@@ -7,6 +7,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <common.h>
 #include <errno.h>
 
@@ -17,20 +26,39 @@ struct mem_file {
 int mem_image_open(void *store, const char *path, const void **image_data)
 {
 	struct mem_file *image = store;
-	const void *fw_base = image->base;
+	int fd = -1;
+	struct stat file_stat;
+	char *buf = NULL;
+	int ret = -1;
 
-	(void)(path);
-	if (image_data == NULL) {
-		LPERROR("%s: input image_data is NULL\r\n", __func__);
-		return -EINVAL;
+	fd = open(path, O_RDONLY);
+	if (fd < 0)
+		return -1;
+
+	memset(&file_stat, 0, sizeof(file_stat));
+	if (fstat(fd, &file_stat))
+		return -1;
+
+	LPRINTF("file size %d\n", file_stat.st_size);
+	buf = malloc(file_stat.st_size);
+	if (!buf)
+		return -1;
+
+	ret = read(fd, buf, file_stat.st_size);
+	if (ret > 0) {
+		LPRINTF("%d read\n", ret);
+	} else if (ret < 0) {
+		LPRINTF("%s\n", strerror(errno));
+		return ret;
 	}
-	*image_data = fw_base;
-	/* return an abitrary length, as the whole firmware is in memory */
-	return 0x100;
+	*image_data = buf;
+	image->base = buf;
+	return file_stat.st_size;
 }
 
 void mem_image_close(void *store)
 {
+	//TODO
 	/* The image is in memory, does nothing */
 	(void)store;
 }
@@ -67,6 +95,7 @@ int mem_image_load(void *store, size_t offset, size_t size,
 			LPERROR("%s: no va is found\r\n", __func__);
 			return -EINVAL;
 		}
+		LPRINTF("Copy to %p (pa: %lx) with size 0x%lx\n", va, pa, size);
 		memcpy(va, (const void *)((const char *)fw_base + offset), size);
 	}
 

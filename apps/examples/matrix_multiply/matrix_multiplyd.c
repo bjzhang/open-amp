@@ -91,7 +91,7 @@ static void rpmsg_service_unbind(struct rpmsg_endpoint *ept)
 /*-----------------------------------------------------------------------------*
  *  Application
  *-----------------------------------------------------------------------------*/
-int app(struct rpmsg_device *rdev, void *priv)
+int matrix_multiplyd_app(struct rpmsg_device *rdev, void *priv)
 {
 	int ret;
 
@@ -120,13 +120,35 @@ int app(struct rpmsg_device *rdev, void *priv)
 /*-----------------------------------------------------------------------------*
  *  Application entry point
  *-----------------------------------------------------------------------------*/
+#ifdef METAL_SYSTEM_RTTHREAD
+static int __matrix_multiplyd(int argc, char *argv[]);
+
+int matrix_multiplyd()
+{
+       __matrix_multiplyd(1, NULL);
+}
+#ifdef RT_USING_FINSH
+FINSH_FUNCTION_EXPORT(matrix_multiplyd, rpmsg echo);
+#endif /* #ifdef RT_USING_FINSH */
+#ifdef FINSH_USING_MSH
+MSH_CMD_EXPORT(matrix_multiplyd, rpmsg echo);
+#endif /* #ifdef FINSH_USING_MSH */
+
+static int __matrix_multiplyd(int argc, char *argv[])
+#else
 int main(int argc, char *argv[])
+#endif /* #ifdef METAL_SYSTEM_RTTHREAD */
 {
 	void *platform;
 	struct rpmsg_device *rpdev;
 	int ret;
 
 	LPRINTF("Starting application...\r\n");
+#ifdef METAL_SYSTEM_RTTHREAD
+	//Make rt-thread happy
+	shutdown_req = 0;
+	memset(&lept, 0, sizeof(lept));
+#endif /* #ifdef FINSH_USING_MSH */
 
 	/* Initialize platform */
 	ret = platform_init(argc, argv, &platform);
@@ -141,7 +163,7 @@ int main(int argc, char *argv[])
 			LPERROR("Failed to create rpmsg virtio device.\r\n");
 			ret = -1;
 		} else {
-			app(rpdev, platform);
+			matrix_multiplyd_app(rpdev, platform);
 			platform_release_rpmsg_vdev(rpdev, platform);
 			ret = 0;
 		}
